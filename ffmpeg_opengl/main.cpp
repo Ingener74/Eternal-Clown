@@ -19,6 +19,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+extern "C"
+{
+	#include <libavformat/avformat.h>
+}
+
+#include "VideoSprite.h"
+
 using namespace std;
 using namespace glm;
 
@@ -33,277 +40,161 @@ void init();
 void display(void);
 void deinit();
 
-struct VertexPositionTexCoord {
-    vec3 pos;
-    vec2 tc;
-};
-
-vector<VertexPositionColor> flour = {
-    {{-35.f, 9.f, 0.f}, {.5f, .4f, .1f}},
-    {{ 35.f, 9.f, 0.f}, {.5f, .4f, .1f}},
-    {{-35.f,-9.f, 0.f}, {.5f, .4f, .1f}},
-    {{ 35.f,-9.f, 0.f}, {.5f, .4f, .1f}},
-}, box = {
-    {{-3.f, 3.f, 0.f},   {.3f, .6f, .1f}},
-    {{ 3.f, 3.f, 0.f},   {.3f, .6f, .1f}},
-    {{-3.f,-3.f, 0.f},   {.3f, .6f, .1f}},
-    {{ 3.f,-3.f, 0.f},   {.3f, .6f, .1f}},
-}, boxHead = {
-    {{-3.f,  0.f, 0.f},   {.3f, .6f, .8f}},
-    {{ 3.f,  0.f, 0.f},   {.3f, .6f, .4f}},
-    {{ 0.f, 15.f, 0.f},   {1.f, 1.f, 1.f}},
-}, bg = {
-    {{-100.f, 40.f, 0.f}, {.7f, .7f, .7f}},
-    {{ 100.f, 40.f, 0.f}, {.7f, .7f, .7f}},
-    {{-100.f,-40.f, 0.f}, {.7f, .7f, .7f}},
-    {{ 100.f,-40.f, 0.f}, {.7f, .7f, .7f}},
-};
-
-vector<VertexPositionTexCoord> tBox = {
-    {{-10.f, 10.f, 0.f},   {0.f, 0.f}},
-    {{ 10.f, 10.f, 0.f},   {1.f, 0.f}},
-    {{-10.f,-10.f, 0.f},   {0.f, 1.f}},
-    {{ 10.f,-10.f, 0.f},   {1.f, 1.f}},
-};
-
-vector<uint16_t> flourInd = {
-    0, 2, 1, 3
-}, boxInd = {
-    0, 2, 1,   3, 1, 2,
-}, boxHeadInd = {
-    0, 2, 1,
-}, bgInd = {
-    0, 2, 1,   3, 1, 2,
-}, tBoxInd = {
-    0, 2, 1,   3, 1, 2,
-};
-
-//
-vector<vec3> shipVerteces = {
-    {-5.f, 5.f, 0.f},
-    { 5.f, 5.f, 0.f},
-    {-5.f,-5.f, 0.f},
-    { 5.f,-5.f, 0.f},
-};
-vector<vec2> shipTexCoords = {
-    {0.f, 0.f},
-    {1.f, 0.f},
-    {0.f, 1.f},
-    {1.f, 1.f},
-};
-vector<uint16_t> shipIndices = {
-    0, 2, 1, 3
-};
-
-
-class ColoredShader {
-public:
-    GLuint shader = 0, aVertex = 0, aColor = 0, uProjection = 0, uView = 0, uModel = 0;
-};
-ColoredShader cs;
-
-
-class TexturedShader {
-public:
-    GLuint shader = 0, aVertex = 0, aTexCoord = 0, uProjection = 0, uView = 0, uModel = 0, uTexture = 0;
-};
-TexturedShader ts;
-
-
-class ColoredSprite{
-public:
-    ColoredSprite(){
-    }
-    ColoredSprite(const ColoredShader& shader, const vector<VertexPositionColor>& vertexes,
-        const vector<uint16_t>& indexes, GLenum drawMode) {
-
-        glGenVertexArrays(1, &VAO);
-        glBindVertexArray(VAO);
-
-        glGenBuffers(1, &VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertexes.size() * sizeof(VertexPositionColor), &vertexes.front().pos.x, GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(shader.aVertex);
-        glVertexAttribPointer(shader.aVertex, 3, GL_FLOAT, GL_FALSE, sizeof(VertexPositionColor), (void*) offsetof(VertexPositionColor, pos));
-
-        glEnableVertexAttribArray(shader.aColor);
-        glVertexAttribPointer(shader.aColor,  3, GL_FLOAT, GL_FALSE, sizeof(VertexPositionColor), (void*) offsetof(VertexPositionColor, rgb));
-
-        glGenBuffers(1, &IBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes.size() * sizeof(uint16_t), indexes.data(), GL_STATIC_DRAW);
-
-        glBindVertexArray(0);
-
-        ColoredSprite::indexes = indexes.size();
-        ColoredSprite::drawMode = drawMode;
-    }
-
-    virtual ~ColoredSprite() {
-        glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &IBO);
-        glDeleteVertexArrays(1, &VAO);
-    }
-
-    void draw(const vector<mat4>& parentsModels = { }) {
-
-        if (parentsModels.empty()) {
-            glUniformMatrix4fv(cs.uModel, 1, GL_FALSE, &model[0][0]);
-        } else {
-            auto m = accumulate(parentsModels.begin() + 1, parentsModels.end(), parentsModels.front(), multiplies<mat4>()) * model;
-            glUniformMatrix4fv(cs.uModel, 1, GL_FALSE, &m[0][0]);
-        }
-
-        glBindVertexArray(VAO);
-        glDrawElements(drawMode, indexes, GL_UNSIGNED_SHORT, 0);
-        glBindVertexArray(0);
-    }
-
-    GLuint VBO = 0, IBO = 0, VAO = 0;
-    size_t indexes = 0;
-    mat4   model;
-    GLenum drawMode;
-};
-
-class TexturedSprite: public ColoredSprite{
-public:
-    TexturedSprite(const TexturedShader& shader, const vector<VertexPositionTexCoord>& vertexes, const vector<uint16_t>& indexes, GLenum drawMode, const Texture& texture){
-
-        glGenVertexArrays(1, &VAO);
-        glBindVertexArray(VAO);
-
-        glGenBuffers(1, &VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertexes.size() * sizeof(VertexPositionTexCoord), &vertexes.front().pos.x, GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(shader.aVertex);
-        glVertexAttribPointer(shader.aVertex, 3, GL_FLOAT, GL_FALSE, sizeof(VertexPositionTexCoord), (void*)offsetof(VertexPositionTexCoord, pos));
-
-        glEnableVertexAttribArray(shader.aTexCoord);
-        glVertexAttribPointer(shader.aTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(VertexPositionTexCoord), (void*)offsetof(VertexPositionTexCoord, tc));
-
-        glGenBuffers(1, &IBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes.size() * sizeof(uint16_t), indexes.data(), GL_STATIC_DRAW);
-
-        glBindVertexArray(0);
-
-        TexturedSprite::indexes = indexes.size();
-        TexturedSprite::drawMode = drawMode;
-        TexturedSprite::texture = texture;
-    }
-
-    TexturedSprite(const TexturedShader& shader, const vector<vec3>& verteces, const vector<vec2>& texcoords, const vector<uint16_t>& indexes, GLenum drawMode, const Texture& texture){
-
-        glGenVertexArrays(1, &VAO);
-        glBindVertexArray(VAO);
-
-        glGenBuffers(1, &VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, verteces.size() * sizeof(vec3), &verteces.front().x, GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(shader.aVertex);
-        glVertexAttribPointer(shader.aVertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-        glGenBuffers(1, &vboTexCoords);
-        glBindBuffer(GL_ARRAY_BUFFER, vboTexCoords);
-        glBufferData(GL_ARRAY_BUFFER, texcoords.size() * sizeof(vec2), &texcoords.front().x, GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(shader.aTexCoord);
-        glVertexAttribPointer(shader.aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-        glGenBuffers(1, &IBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes.size() * sizeof(uint16_t), indexes.data(), GL_STATIC_DRAW);
-
-        glBindVertexArray(0);
-
-        TexturedSprite::indexes = indexes.size();
-        TexturedSprite::drawMode = drawMode;
-        TexturedSprite::texture = texture;
-    }
-
-    /*
-     *
-     */
-
-    virtual ~TexturedSprite(){
-        glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &IBO);
-        glDeleteVertexArrays(1, &VAO);
-        glDeleteTextures(1, &texture.textureId);
-    }
-
-    void draw(const vector<mat4>& parentsModels = { }) {
-
-        if (parentsModels.empty()) {
-            glUniformMatrix4fv(ts.uModel, 1, GL_FALSE, &model[0][0]);
-        } else {
-            auto m = accumulate(parentsModels.begin() + 1, parentsModels.end(), parentsModels.front(),
-                multiplies<mat4>()) * model;
-            glUniformMatrix4fv(ts.uModel, 1, GL_FALSE, &m[0][0]);
-        }
-
-        GLint textureUnit = 0;
-        glActiveTexture(GL_TEXTURE0 + textureUnit);
-        glBindTexture(GL_TEXTURE_2D, texture.textureId);
-        glUniform1i(ts.uTexture, textureUnit);
-
-        glBindVertexArray(VAO);
-        glDrawElements(drawMode, indexes, GL_UNSIGNED_SHORT, 0);
-        glBindVertexArray(0);
-    }
-
-    vector<GLuint> vbos;
-    GLuint vboTexCoords = 0;
-    Texture texture;
-};
-
-string texturedSpriteVertex = R"(
-
-#version 120
-
-uniform   mat4 projection, view, model;
-
-attribute vec4 vertex;
-attribute vec2 texcoord;
-
-varying vec2 vtexcoord;
-
+string vertex_texture = R"(
+#version 330
+uniform mat4 projection, view, model;
+layout (location = 0) in vec4 position;
+layout (location = 1) in vec2 texcoord;
+out vec2 texcoord_;
 void main(){
-    gl_Position = projection * view * model * vertex;
-    vtexcoord = texcoord;
+    gl_Position = projection * view * model * position;
+    texcoord_ = texcoord;
 }
-
-)", texturedSpriteFragment = R"(
-
-#version 120
-
-varying vec2 vtexcoord;
-
+)", fragment_texture = R"(
+#version 330
 uniform sampler2D texture;
-
+in vec2 texcoord_;
+out vec4 fragColor;
 void main(){
-    gl_FragColor = texture2D(texture, vtexcoord);
+    fragColor = texture2D(texture, texcoord_);
 }
-
 )";
 
-string base;
+GLuint createShader(GLenum shaderType, const string& source) {
+    GLuint shader = glCreateShader(shaderType);
+    if (!shader)
+        throw runtime_error("can't create shader");
+
+    const char* sourceBuffer = source.c_str();
+
+    glShaderSource(shader, 1, &sourceBuffer, 0);
+    glCompileShader(shader);
+
+    GLint compiled = 0;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+    if (compiled)
+        return shader;
+
+    GLint infoLen = 0;
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
+    if (!infoLen)
+        throw runtime_error("error in create shader");
+
+    vector<char> buf(infoLen);
+    glGetShaderInfoLog(shader, infoLen, 0, buf.data());
+
+    static array<string, 2> shaderTypeString = { "GL_FRAGMENT_SHADER", "GL_VERTEX_SHADER" };
+
+    throw runtime_error(""
+            "can't create shader " + shaderTypeString[shaderType - GL_FRAGMENT_SHADER] + "\n" + &buf.front());
+}
+
+GLuint createProgram(const string& vertexShaderSource, const string& fragmentShaderSource) {
+    if (vertexShaderSource.empty())
+        throw runtime_error("vertex shader is empty");
+    if (fragmentShaderSource.empty())
+        throw runtime_error("fragment shader is empty");
+
+    GLuint vertexShader = createShader(GL_VERTEX_SHADER, vertexShaderSource);
+    GLuint fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+
+    GLuint program = glCreateProgram();
+    if (!program)
+        throw runtime_error("can't create program");
+
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+
+    glLinkProgram(program);
+    GLint linkStatus = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
+
+    if (linkStatus != GL_TRUE) {
+        GLint bufLen = 0;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufLen);
+        if (bufLen) {
+            vector<char> buf(bufLen);
+            glGetProgramInfoLog(program, bufLen, NULL, buf.data());
+            throw runtime_error(string("can't link shader program\n") + buf.data());
+        }
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return program;
+}
+
+
+GLfloat
+bw       = 136.f,
+bh       = 40.f,
+
+b0_off   = 0.f,
+b1_off   = 41.f,
+b2_off   = 82.f,
+
+ts       = 256.f;
+
+vector<GLfloat> pos012 = {
+    -bw/2,  bh/2, 0.f,
+     bw/2,  bh/2, 0.f,
+    -bw/2, -bh/2, 0.f,
+     bw/2, -bh/2, 0.f,
+};
+
+vector<GLfloat> texcoord0 = {
+//    0.f, b0_off/ts,           bw/ts, b0_off/ts,
+//    0.f, b0_off/ts + bh/ts,   bw/ts, b0_off/ts + bh/ts,
+    0.f, 0.f,           1.f, 0.f,
+    0.f, 1.f,           1.f, 1.f,
+}, texcoord1 = {
+    0.f, b1_off/ts,           bw/ts, b1_off/ts,
+    0.f, b1_off/ts + bh/ts,   bw/ts, b1_off/ts + bh/ts,
+}, texcoord2 = {
+    0.f, b2_off/ts,           bw/ts, b2_off/ts,
+    0.f, b2_off/ts + bh/ts,   bw/ts, b2_off/ts + bh/ts,
+};
+
+vector<uint16_t> indeces = {
+    0, 2, 1, 3
+};
+
+GLuint shader;
+GLint uProj, uView, uModel, uTexture;
+GLint aTexCoord;
+GLint aPosition;
+
+GLuint vaos[3];
+GLuint pos;
+GLuint texcoords[3];
+GLuint indeces_;
+GLuint indecesCount[] = {4, 4, 4};
+GLenum drawModes[] = {GL_TRIANGLE_STRIP, GL_TRIANGLE_STRIP, GL_TRIANGLE_STRIP};
+
+mat4 proj, view, model;
+
+VideoSprite* videoSprite = nullptr;
+
+void init();
+void display(void);
+void deinit() {}
+
+void reshape(int w, int h);
+void timer(int time);
 
 float w = 1280.f, h = 536.f, m = 1.f;
 
 float width = w * m, height = h * m;
 
-mat4 proj, view;
-
 int main(int argc, char **argv) {
     try {
-        if(argc < 2)
-            throw invalid_argument("usage: ./Test <path-to-resource>");
+//        if(argc < 2)
+//            throw invalid_argument("usage: ./Test <path-to-resource>");
 
-        base = argv[1];
+        av_register_all();
+
+//        base = argv[1];
 
         glutInit(&argc, argv);
         glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
@@ -331,10 +222,10 @@ int main(int argc, char **argv) {
 
         glutReshapeFunc(reshape);
         glutDisplayFunc(display);
-        glutMouseFunc(mouse);
-        glutMotionFunc(mouseMove);
-        glutKeyboardFunc(key);
-        glutSpecialFunc(specKey);
+//        glutMouseFunc(mouse);
+//        glutMotionFunc(mouseMove);
+//        glutKeyboardFunc(key);
+//        glutSpecialFunc(specKey);
 
 //        glutFullScreen();
 
@@ -358,105 +249,136 @@ int main(int argc, char **argv) {
     }
 }
 
-void reshape(int w, int h) {
-    glViewport(0, 0, w, h);
-    proj = glm::perspective(45.f, w / float(h), 10.f, 10000.f);
-    view = glm::lookAt<float>(vec3(40.f, 40.f, 100.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
-}
+void init() {
 
-void timer(int time) {
-    glutPostRedisplay();
+//    tex = loadTexture(getBase() + "/Resources/button-1/pressme.png");
 
-    int delay = 1000 / 60;
-    glutTimerFunc(delay, timer, 0);
-}
+    shader = createProgram(vertex_texture, fragment_texture);
 
-void init(){
+    aPosition = glGetAttribLocation(shader, "position");
+    aTexCoord = glGetAttribLocation(shader, "texcoord");
 
-//    boxImage        = getBase() + "/Resources/box.png";
-//    shipImage       = getBase() + "/Resources/ship1.png";
+    uProj     = glGetUniformLocation(shader, "projection");
+    uView     = glGetUniformLocation(shader, "view");
+    uModel    = glGetUniformLocation(shader, "model");
+    uTexture  = glGetUniformLocation(shader, "texture");
 
+    cout << "aPosition " << aPosition << ", aTexCoord " << aTexCoord << ", " << endl <<
+        "uProj " << uProj << ", uView " << uView << ", uModel " << uModel << ", uTexture " << uTexture << endl;
+
+    videoSprite = new VideoSprite("/home/pavel/trailer.h.mp4");
+    videoSprite->start();
+
+    glGenBuffers(1, &pos);
+    glBindBuffer(GL_ARRAY_BUFFER, pos);
+    glBufferData(GL_ARRAY_BUFFER, pos012.size() * sizeof(float), pos012.data(), GL_STATIC_DRAW);
+
+    glGenBuffers(3, texcoords);
     {
-        cs.shader = createProgram(coloredSpriteVertex, coloredSpriteFragment);
+        glBindBuffer(GL_ARRAY_BUFFER, texcoords[0]);
+        glBufferData(GL_ARRAY_BUFFER, texcoord0.size() * sizeof(float), texcoord0.data(), GL_STATIC_DRAW);
 
-        cs.uProjection = glGetUniformLocation(cs.shader, "projection");
-        cs.uView       = glGetUniformLocation(cs.shader, "view");
-        cs.uModel      = glGetUniformLocation(cs.shader, "model");
+        glBindBuffer(GL_ARRAY_BUFFER, texcoords[1]);
+        glBufferData(GL_ARRAY_BUFFER, texcoord1.size() * sizeof(float), texcoord1.data(), GL_STATIC_DRAW);
 
-        cs.aVertex     = glGetAttribLocation(cs.shader, "vertex");
-        cs.aColor      = glGetAttribLocation(cs.shader, "color");
-
-        glUseProgram(cs.shader);
-        glUniformMatrix4fv(cs.uProjection, 1, GL_FALSE, &proj[0][0]);
-        glUniformMatrix4fv(cs.uView, 1, GL_FALSE, &view[0][0]);
-    }
-    {
-        ts.shader = createProgram(texturedSpriteVertex, texturedSpriteFragment);
-
-        ts.uProjection = glGetUniformLocation(ts.shader, "projection");
-        ts.uView       = glGetUniformLocation(ts.shader, "view");
-        ts.uModel      = glGetUniformLocation(ts.shader, "model");
-
-        ts.uTexture    = glGetUniformLocation(ts.shader, "texture");
-
-        ts.aVertex     = glGetAttribLocation(ts.shader, "vertex");
-        ts.aTexCoord   = glGetAttribLocation(ts.shader, "texcoord");
-
-        glUseProgram(ts.shader);
-        glUniformMatrix4fv(ts.uProjection, 1, GL_FALSE, &proj[0][0]);
-        glUniformMatrix4fv(ts.uView, 1, GL_FALSE, &view[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, texcoords[2]);
+        glBufferData(GL_ARRAY_BUFFER, texcoord2.size() * sizeof(float), texcoord2.data(), GL_STATIC_DRAW);
     }
 
-    boxSprite      = make_unique_<ColoredSprite>(cs, box,      boxInd,      GL_TRIANGLES);
-    flourSprite    = make_unique_<ColoredSprite>(cs, flour,    flourInd,    GL_TRIANGLE_STRIP);
-    bgSprite       = make_unique_<ColoredSprite>(cs, bg,       bgInd,       GL_TRIANGLES);
-    boxHeadSprite  = make_unique_<ColoredSprite>(cs, boxHead,  boxHeadInd,  GL_TRIANGLES);
+    glGenBuffers(1, &indeces_);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indeces.size() * sizeof(uint16_t), indeces.data(), GL_STATIC_DRAW);
 
-    tBoxSprite     = make_unique_<TexturedSprite>(ts, tBox,     tBoxInd,     GL_TRIANGLES, loadTexture(boxImage));
-    ship           = make_unique_<TexturedSprite>(ts, shipVerteces, shipTexCoords, shipIndices, GL_TRIANGLE_STRIP, loadTexture(shipImage));
+    glGenVertexArrays(3, vaos);
+    {
+        glBindVertexArray(vaos[0]);
 
-    boxSprite->model        = glm::translate(boxSprite->model,     vec3(0.f,  30.f,  0.f));
-    boxHeadSprite->model    = glm::translate(boxHeadSprite->model, vec3(0.f,  3.0f,  0.f));
-    flourSprite->model      = glm::translate(flourSprite->model,   vec3(0.f, -40.f,  0.f));
-    bgSprite->model         = glm::translate(bgSprite->model,      vec3(0.f,   0.f, -1.f));
-    tBoxSprite->model       = glm::translate(tBoxSprite->model,    vec3(0.f, -13.f,  4.f));
+        glBindBuffer(GL_ARRAY_BUFFER, pos);
+        glEnableVertexAttribArray(aPosition);
+        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    ship->model             = glm::translate(ship->model,          vec3(0.f,  -20.f,  5.f));
+        glBindBuffer(GL_ARRAY_BUFFER, texcoords[0]);
+        glEnableVertexAttribArray(aTexCoord);
+        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
+    }
+    {
+        glBindVertexArray(vaos[1]);
+
+        glBindBuffer(GL_ARRAY_BUFFER, pos);
+        glEnableVertexAttribArray(aPosition);
+        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glBindBuffer(GL_ARRAY_BUFFER, texcoords[1]);
+        glEnableVertexAttribArray(aTexCoord);
+        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
+    }
+    {
+        glBindVertexArray(vaos[2]);
+
+        glBindBuffer(GL_ARRAY_BUFFER, pos);
+        glEnableVertexAttribArray(aPosition);
+        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glBindBuffer(GL_ARRAY_BUFFER, texcoords[2]);
+        glEnableVertexAttribArray(aTexCoord);
+        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
+    }
 }
 
-void display(void) {
+void display(void)
+{
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.2f, 0.2f, 0.1f, 1.f);
 
-    {
-        glUseProgram(cs.shader);
+//    static int counter = 60, frame = 0;
+//    if(!--counter){
+//        counter = 60;
+//        if(++frame == 3)
+//            frame = 0;
+//    }
 
-        boxSprite->model = glm::rotate(boxSprite->model, .03f, vec3(0.f, 0.f, 1.f));
+    glUseProgram(shader);
 
-        bgSprite->draw();
-        flourSprite->draw();
-        boxSprite->draw();
-        boxHeadSprite->draw( { boxSprite->model });
-    }
+    glUniformMatrix4fv(uProj, 1, GL_FALSE, &proj[0][0]);
+    glUniformMatrix4fv(uView, 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(uModel, 1, GL_FALSE, &model[0][0]);
 
-    {
-        glUseProgram(ts.shader);
+    glActiveTexture(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE_2D, tex.textureId);
+    videoSprite->draw();
+    glUniform1i(uTexture, 0);
 
-        tBoxSprite->draw( { boxSprite->model });
-        ship->draw();
-    }
+//    glBindVertexArray(vaos[frame]);
+//    glDrawElements(drawModes[frame], indecesCount[frame], GL_UNSIGNED_SHORT, 0);
+    glBindVertexArray(vaos[0]);
+    glDrawElements(drawModes[0], indecesCount[0], GL_UNSIGNED_SHORT, 0);
+
+    glBindVertexArray(0);
 
     glFlush();
     glutSwapBuffers();
 }
 
-void deinit(){
-    glDeleteProgram(cs.shader);
-    glDeleteProgram(ts.shader);
+void reshape(int w, int h)
+{
+	glViewport(0, 0, w, h);
 
-    boxSprite.reset();
-    bgSprite.reset();
-    flourSprite.reset();
-    boxHeadSprite.reset();
-    tBoxSprite.reset();
+	proj = glm::perspective(45.f, w / float(h), 10.f, 10000.f);
+//    proj = glm::ortho<float>(-w/2, w/2, -h/2, h/2, -h/2, h/2);
+	view = glm::lookAt<float>(vec3(40.f, 40.f, 100.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
 }
+
+void timer(int time)
+{
+	glutPostRedisplay();
+
+	int delay = 1000 / 60;
+	glutTimerFunc(delay, timer, 0);
+}
+

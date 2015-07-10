@@ -12,10 +12,15 @@ find_package(GLUT REQUIRED)
 # find OpenGL
 find_package(OpenGL REQUIRED)
 
+# find OpenGL
+find_package(FFMPEG REQUIRED)
+
 include_directories(
     ${GLM_INCLUDE_DIRS}
     ${GLUT_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
+#    ${FFMPEG_INCLUDE_DIR}
+    /usr/local/include/libavformat
 )
 
 # find GLEW
@@ -26,9 +31,15 @@ set(GL_LIBRARIES
     ${OPENGL_LIBRARIES}
     ${GLEW_LIBRARIES}
     ${GLUT_LIBRARIES}
+    ${FFMPEG_LIBRARIES}
 )
 
 add_definitions(-std=c++11)
 
-add_executable(ffmpeg_opengl ffmpeg_opengl/main.cpp)
-#target_link_libraries(ffmpeg_opengl )
+add_executable(ffmpeg_opengl 
+    ffmpeg_opengl/main.cpp 
+    ffmpeg_opengl/FFmpegVideoSource.cpp 
+    ffmpeg_opengl/VideoSprite.cpp
+)
+
+target_link_libraries(ffmpeg_opengl ${GL_LIBRARIES} pthread lzma bz2 swresample)
