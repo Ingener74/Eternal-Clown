@@ -15,6 +15,8 @@ public:
 	void start(std::function<void()> = {});
 	void stop();
 
+	bool isPlay() const;
+
 	void draw();
 
 private:

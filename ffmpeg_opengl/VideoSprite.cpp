@@ -28,19 +28,6 @@ VideoSprite::VideoSprite(const std::string& fileName)
 	// Получаем первый кадр
 	auto frame = m_videoSource->getFrame();
 
-	// Создаём текстуру
-//	auto texture = new CCTexture2D();
-//	texture->initWithData(frame.m_buffer.data(), kCCTexture2DPixelFormat_RGB888, frame.m_width, frame.m_height,
-//			{ static_cast<float>(frame.m_width), static_cast<float>(frame.m_height) });
-//
-//	if (!initWithTexture(texture))
-//	{
-//		throw runtime_error(string(__FILE__) + ": " + to_string(__LINE__) + ": " + string(__PRETTY_FUNCTION__) + ": " +
-//				"invalid init");
-//	}
-//
-//	texture->release();
-
     glGenTextures(1, &textureID);
 
     glBindTexture(GL_TEXTURE_2D, textureID);
@@ -60,6 +47,7 @@ VideoSprite::VideoSprite(const std::string& fileName)
 VideoSprite::~VideoSprite()
 {
 	stop();
+	glDeleteTextures(1, &textureID);
 }
 
 void VideoSprite::start(function<void()> onEnd)
@@ -109,4 +97,9 @@ void VideoSprite::updateTexture(const RGBFrame& frame)
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame.m_width, frame.m_height, GL_RGB, GL_UNSIGNED_BYTE,
 			frame.m_buffer.data());
+}
+
+bool VideoSprite::isPlay() const
+{
+	return m_videoSource->isPlay();
 }

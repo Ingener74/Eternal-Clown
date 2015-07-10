@@ -125,10 +125,14 @@ GLuint createProgram(const string& vertexShaderSource, const string& fragmentSha
     return program;
 }
 
+float w = 1280.f, h = 536.f, m = .3f;
+float width = w * m, height = h * m;
 
 GLfloat
-bw       = 136.f,
-bh       = 40.f,
+//bw       = 136.f,
+//bh       = 40.f,
+bw       = width,
+bh       = height,
 
 b0_off   = 0.f,
 b1_off   = 41.f,
@@ -146,8 +150,8 @@ vector<GLfloat> pos012 = {
 vector<GLfloat> texcoord0 = {
 //    0.f, b0_off/ts,           bw/ts, b0_off/ts,
 //    0.f, b0_off/ts + bh/ts,   bw/ts, b0_off/ts + bh/ts,
-    0.f, 0.f,           1.f, 0.f,
-    0.f, 1.f,           1.f, 1.f,
+    0.f, 0.f,                  w / 2048.f, 0.f,
+    0.f, h / 2048.f,           w / 2048.f, h / 2048.f,
 }, texcoord1 = {
     0.f, b1_off/ts,           bw/ts, b1_off/ts,
     0.f, b1_off/ts + bh/ts,   bw/ts, b1_off/ts + bh/ts,
@@ -182,10 +186,6 @@ void deinit() {}
 
 void reshape(int w, int h);
 void timer(int time);
-
-float w = 1280.f, h = 536.f, m = 1.f;
-
-float width = w * m, height = h * m;
 
 int main(int argc, char **argv) {
     try {
@@ -251,8 +251,6 @@ int main(int argc, char **argv) {
 
 void init() {
 
-//    tex = loadTexture(getBase() + "/Resources/button-1/pressme.png");
-
     shader = createProgram(vertex_texture, fragment_texture);
 
     aPosition = glGetAttribLocation(shader, "position");
@@ -267,7 +265,7 @@ void init() {
         "uProj " << uProj << ", uView " << uView << ", uModel " << uModel << ", uTexture " << uTexture << endl;
 
     videoSprite = new VideoSprite("/home/pavel/trailer.h.mp4");
-    videoSprite->start();
+//    videoSprite->start();
 
     glGenBuffers(1, &pos);
     glBindBuffer(GL_ARRAY_BUFFER, pos);
@@ -333,6 +331,11 @@ void init() {
 
 void display(void)
 {
+	if (!videoSprite->isPlay())
+	{
+		videoSprite->start();
+	}
+
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.2f, 0.2f, 0.1f, 1.f);
 
@@ -369,9 +372,9 @@ void reshape(int w, int h)
 {
 	glViewport(0, 0, w, h);
 
-	proj = glm::perspective(45.f, w / float(h), 10.f, 10000.f);
-//    proj = glm::ortho<float>(-w/2, w/2, -h/2, h/2, -h/2, h/2);
-	view = glm::lookAt<float>(vec3(40.f, 40.f, 100.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
+//	proj = glm::perspective(45.f, w / float(h), 10.f, 10000.f);
+    proj = glm::ortho<float>(-width/2, width/2, -height/2, height/2, -height/2, height/2);
+//	view = glm::lookAt<float>(vec3(40.f, 40.f, 100.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
 }
 
 void timer(int time)
