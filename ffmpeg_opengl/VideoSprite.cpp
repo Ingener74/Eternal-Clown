@@ -1,4 +1,3 @@
-
 #include <chrono>
 
 #include <GL/glew.h>
@@ -20,13 +19,12 @@ uint32_t upperPowerOfTwo(uint32_t v) {
     return v;
 }
 
-VideoSprite::VideoSprite(const std::string& fileName)
-{
-	// Открываем видео
-	m_videoSource.reset(new FFmpegVideoSource(fileName));
+VideoSprite::VideoSprite(const std::string& fileName) {
+    // Открываем видео
+    m_videoSource.reset(new FFmpegVideoSource(fileName));
 
-	// Получаем первый кадр
-	auto frame = m_videoSource->getFrame();
+    // Получаем первый кадр
+    auto frame = m_videoSource->getFrame();
 
     glGenTextures(1, &textureID);
 
@@ -41,65 +39,57 @@ VideoSprite::VideoSprite(const std::string& fileName)
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame.m_width, frame.m_height, GL_RGB, GL_UNSIGNED_BYTE, frame.m_buffer.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame.m_width, frame.m_height, GL_RGB, GL_UNSIGNED_BYTE,
+            frame.m_buffer.data());
 }
 
-VideoSprite::~VideoSprite()
-{
-	stop();
-	glDeleteTextures(1, &textureID);
+VideoSprite::~VideoSprite() {
+    stop();
+    glDeleteTextures(1, &textureID);
 }
 
-void VideoSprite::start(function<void()> onEnd)
-{
-	if (m_videoSource)
-	{
-		// Перематываем в начало
-		m_videoSource->seek(0);
+void VideoSprite::start(function<void()> onEnd) {
+    if (m_videoSource) {
+        // Перематываем в начало
+        m_videoSource->seek(0);
 
-		updateTexture(m_videoSource->getFrame());
+        updateTexture(m_videoSource->getFrame());
 
-		m_videoSource->start([this](RGBFrame frame)
-		{
-			// Лочим и забираем изображение
-			lock_guard<mutex> lock(m_frameMutex);
+        m_videoSource->start([this](RGBFrame frame)
+        {
+            // Лочим и забираем изображение
+                lock_guard<mutex> lock(m_frameMutex);
 
-			m_frame = move(frame);
-		}, onEnd);
-	}
+                m_frame = move(frame);
+            }, onEnd);
+    }
 }
 
-void VideoSprite::stop()
-{
-	m_videoSource->stop();
+void VideoSprite::stop() {
+    m_videoSource->stop();
 }
 
-void VideoSprite::draw()
-{
-	// Если настало время показывать кадр ...
-	if (m_videoSource->isPresentationTimeStampPassed())
-	{
-		// ... тогда лочим его(кадр) и текстуру ...
-		lock_guard<mutex> lock(m_frameMutex);
+void VideoSprite::draw() {
+    // Если настало время показывать кадр ...
+    if (m_videoSource->isPresentationTimeStampPassed()) {
+        // ... тогда лочим его(кадр) и текстуру ...
+        lock_guard<mutex> lock(m_frameMutex);
 
-		// ... и загружаем новый кадр в текстуру если он не пустой
-		if (!m_frame.m_buffer.empty())
-		{
-			updateTexture(m_frame);
-			m_frame.m_buffer.clear();
-		}
-	}
-	glBindTexture(GL_TEXTURE_2D, textureID);
+        // ... и загружаем новый кадр в текстуру если он не пустой
+        if (!m_frame.m_buffer.empty()) {
+            updateTexture(m_frame);
+            m_frame.m_buffer.clear();
+        }
+    }
+    glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
-void VideoSprite::updateTexture(const RGBFrame& frame)
-{
-	glBindTexture(GL_TEXTURE_2D, textureID);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame.m_width, frame.m_height, GL_RGB, GL_UNSIGNED_BYTE,
-			frame.m_buffer.data());
+void VideoSprite::updateTexture(const RGBFrame& frame) {
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame.m_width, frame.m_height, GL_RGB, GL_UNSIGNED_BYTE,
+            frame.m_buffer.data());
 }
 
-bool VideoSprite::isPlay() const
-{
-	return m_videoSource->isPlay();
+bool VideoSprite::isPlay() const {
+    return m_videoSource->isPlay();
 }

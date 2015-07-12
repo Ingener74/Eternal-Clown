@@ -29,15 +29,20 @@ extern "C"
 using namespace std;
 using namespace glm;
 
-void mouse(int button, int action, int x, int y);
-void mouseMove(int x, int y);
-void key(unsigned char key, int x, int y);
-void specKey(int key, int x, int y);
-void timer(int time);
+void mouse(int button, int action, int x, int y) {
+}
+void mouseMove(int x, int y) {
+}
+void key(unsigned char key, int x, int y) {
+}
+void specKey(int key, int x, int y) {
+}
+
 
 void reshape(int w, int h);
 void init();
 void display(void);
+void timer(int time);
 void deinit();
 
 string vertex_texture = R"(
@@ -222,10 +227,10 @@ int main(int argc, char **argv) {
 
         glutReshapeFunc(reshape);
         glutDisplayFunc(display);
-//        glutMouseFunc(mouse);
-//        glutMotionFunc(mouseMove);
-//        glutKeyboardFunc(key);
-//        glutSpecialFunc(specKey);
+        glutMouseFunc(mouse);
+        glutMotionFunc(mouseMove);
+        glutKeyboardFunc(key);
+        glutSpecialFunc(specKey);
 
 //        glutFullScreen();
 
@@ -265,7 +270,6 @@ void init() {
         "uProj " << uProj << ", uView " << uView << ", uModel " << uModel << ", uTexture " << uTexture << endl;
 
     videoSprite = new VideoSprite("/home/pavel/trailer.h.mp4");
-//    videoSprite->start();
 
     glGenBuffers(1, &pos);
     glBindBuffer(GL_ARRAY_BUFFER, pos);
@@ -276,11 +280,11 @@ void init() {
         glBindBuffer(GL_ARRAY_BUFFER, texcoords[0]);
         glBufferData(GL_ARRAY_BUFFER, texcoord0.size() * sizeof(float), texcoord0.data(), GL_STATIC_DRAW);
 
-        glBindBuffer(GL_ARRAY_BUFFER, texcoords[1]);
-        glBufferData(GL_ARRAY_BUFFER, texcoord1.size() * sizeof(float), texcoord1.data(), GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ARRAY_BUFFER, texcoords[2]);
-        glBufferData(GL_ARRAY_BUFFER, texcoord2.size() * sizeof(float), texcoord2.data(), GL_STATIC_DRAW);
+//        glBindBuffer(GL_ARRAY_BUFFER, texcoords[1]);
+//        glBufferData(GL_ARRAY_BUFFER, texcoord1.size() * sizeof(float), texcoord1.data(), GL_STATIC_DRAW);
+//
+//        glBindBuffer(GL_ARRAY_BUFFER, texcoords[2]);
+//        glBufferData(GL_ARRAY_BUFFER, texcoord2.size() * sizeof(float), texcoord2.data(), GL_STATIC_DRAW);
     }
 
     glGenBuffers(1, &indeces_);
@@ -301,50 +305,41 @@ void init() {
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
     }
-    {
-        glBindVertexArray(vaos[1]);
-
-        glBindBuffer(GL_ARRAY_BUFFER, pos);
-        glEnableVertexAttribArray(aPosition);
-        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-        glBindBuffer(GL_ARRAY_BUFFER, texcoords[1]);
-        glEnableVertexAttribArray(aTexCoord);
-        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
-    }
-    {
-        glBindVertexArray(vaos[2]);
-
-        glBindBuffer(GL_ARRAY_BUFFER, pos);
-        glEnableVertexAttribArray(aPosition);
-        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-        glBindBuffer(GL_ARRAY_BUFFER, texcoords[2]);
-        glEnableVertexAttribArray(aTexCoord);
-        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
-    }
+//    {
+//        glBindVertexArray(vaos[1]);
+//
+//        glBindBuffer(GL_ARRAY_BUFFER, pos);
+//        glEnableVertexAttribArray(aPosition);
+//        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+//
+//        glBindBuffer(GL_ARRAY_BUFFER, texcoords[1]);
+//        glEnableVertexAttribArray(aTexCoord);
+//        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+//
+//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
+//    }
+//    {
+//        glBindVertexArray(vaos[2]);
+//
+//        glBindBuffer(GL_ARRAY_BUFFER, pos);
+//        glEnableVertexAttribArray(aPosition);
+//        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+//
+//        glBindBuffer(GL_ARRAY_BUFFER, texcoords[2]);
+//        glEnableVertexAttribArray(aTexCoord);
+//        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+//
+//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
+//    }
 }
 
-void display(void)
-{
-	if (!videoSprite->isPlay())
-	{
-		videoSprite->start();
-	}
+void display(void) {
+    if (!videoSprite->isPlay()) {
+        videoSprite->start();
+    }
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.2f, 0.2f, 0.1f, 1.f);
-
-//    static int counter = 60, frame = 0;
-//    if(!--counter){
-//        counter = 60;
-//        if(++frame == 3)
-//            frame = 0;
-//    }
 
     glUseProgram(shader);
 
@@ -357,8 +352,6 @@ void display(void)
     videoSprite->draw();
     glUniform1i(uTexture, 0);
 
-//    glBindVertexArray(vaos[frame]);
-//    glDrawElements(drawModes[frame], indecesCount[frame], GL_UNSIGNED_SHORT, 0);
     glBindVertexArray(vaos[0]);
     glDrawElements(drawModes[0], indecesCount[0], GL_UNSIGNED_SHORT, 0);
 
@@ -368,20 +361,18 @@ void display(void)
     glutSwapBuffers();
 }
 
-void reshape(int w, int h)
-{
-	glViewport(0, 0, w, h);
+void reshape(int w, int h) {
+    glViewport(0, 0, w, h);
 
 //	proj = glm::perspective(45.f, w / float(h), 10.f, 10000.f);
-    proj = glm::ortho<float>(-width/2, width/2, -height/2, height/2, -height/2, height/2);
+    proj = glm::ortho<float>(-width / 2, width / 2, -height / 2, height / 2, -height / 2, height / 2);
 //	view = glm::lookAt<float>(vec3(40.f, 40.f, 100.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
 }
 
-void timer(int time)
-{
-	glutPostRedisplay();
+void timer(int time) {
+    glutPostRedisplay();
 
-	int delay = 1000 / 60;
-	glutTimerFunc(delay, timer, 0);
+    int delay = 1000 / 60;
+    glutTimerFunc(delay, timer, 0);
 }
 
