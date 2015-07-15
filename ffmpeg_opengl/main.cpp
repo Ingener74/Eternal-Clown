@@ -24,7 +24,9 @@ extern "C"
 	#include <libavformat/avformat.h>
 }
 
-#include "VideoSprite.h"
+//#include "VideoSprite.h"
+
+#include "highgui.hpp"
 
 using namespace std;
 using namespace glm;
@@ -183,7 +185,7 @@ GLenum drawModes[] = {GL_TRIANGLE_STRIP, GL_TRIANGLE_STRIP, GL_TRIANGLE_STRIP};
 
 mat4 proj, view, model;
 
-VideoSprite* videoSprite = nullptr;
+VideoCapture* videoSprite = nullptr;
 
 void init();
 void display(void);
@@ -269,7 +271,7 @@ void init() {
     cout << "aPosition " << aPosition << ", aTexCoord " << aTexCoord << ", " << endl <<
         "uProj " << uProj << ", uView " << uView << ", uModel " << uModel << ", uTexture " << uTexture << endl;
 
-    videoSprite = new VideoSprite("/home/pavel/trailer.h.mp4");
+    videoSprite = new VideoCapture("/home/pavel/trailer.h.mp4");
 
     glGenBuffers(1, &pos);
     glBindBuffer(GL_ARRAY_BUFFER, pos);
@@ -334,9 +336,9 @@ void init() {
 }
 
 void display(void) {
-    if (!videoSprite->isPlay()) {
-        videoSprite->start();
-    }
+//    if (!videoSprite->isPlay()) {
+//        videoSprite->start();
+//    }
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.2f, 0.2f, 0.1f, 1.f);
@@ -349,7 +351,7 @@ void display(void) {
 
     glActiveTexture(GL_TEXTURE0);
 //    glBindTexture(GL_TEXTURE_2D, tex.textureId);
-    videoSprite->draw();
+//    videoSprite->draw();
     glUniform1i(uTexture, 0);
 
     glBindVertexArray(vaos[0]);

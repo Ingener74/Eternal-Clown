@@ -38,8 +38,9 @@ add_definitions(-std=c++11)
 
 add_executable(ffmpeg_opengl 
     ffmpeg_opengl/main.cpp 
-    ffmpeg_opengl/FFmpegVideoSource.cpp 
-    ffmpeg_opengl/VideoSprite.cpp
+    ffmpeg_opengl/cap_ffmpeg_impl.cpp
+    ffmpeg_opengl/cap.cpp
+    # ffmpeg_opengl/cap_ffmpeg.cpp
 )
 
 target_link_libraries(ffmpeg_opengl ${GL_LIBRARIES} pthread lzma bz2 swresample)
