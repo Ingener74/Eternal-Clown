@@ -14,6 +14,8 @@
             if(!(condition)) \
                 throw std::runtime_error(std::string(__FILE__) + ": " + to_string(__LINE__) + ": " + std::string(__PRETTY_FUNCTION__) + ": " + message)
 
+struct AVFrame;
+struct AVPacket;
 
 class FFmpegVideoSource: public IVideoSource {
 public:
@@ -28,7 +30,7 @@ public:
     virtual bool isPlay() const override;
 
 private:
-    bool decodeFrame(struct AVFrame* frameSrc, AVFrame* frameDst, struct AVPacket*);
+    bool decodeFrame(AVPacket*);
 
     struct AVFormatContext* m_formatContext = nullptr;
     struct AVCodecContext* m_codecContext = nullptr;
@@ -37,7 +39,9 @@ private:
 
     bool m_noFrames = false;
 
-    int64_t m_pts = 0;
+    RGBFrame m_rgbImage;
+    AVFrame* m_yuvFrame = nullptr;
+    AVFrame* m_rgbFrame = nullptr;
 
     std::chrono::system_clock::time_point m_startTime;
 
