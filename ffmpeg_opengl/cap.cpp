@@ -15,6 +15,7 @@ VideoCapture::VideoCapture(const string& filename)
 
 VideoCapture::VideoCapture(int device)
 {
+	throw runtime_error("not implemented");
 	open(device);
 }
 
@@ -33,10 +34,11 @@ bool VideoCapture::open(const string& filename)
 
 bool VideoCapture::open(int device)
 {
-	if (isOpened())
-		release();
-	cap = cvCreateCameraCapture(device);
-	return isOpened();
+	throw runtime_error("not implemented");
+//	if (isOpened())
+//		release();
+//	cap = cvCreateCameraCapture(device);
+//	return isOpened();
 }
 
 bool VideoCapture::isOpened() const
@@ -51,12 +53,12 @@ void VideoCapture::release()
 
 bool VideoCapture::grab()
 {
-	return cvGrabFrame(cap) != 0;
+	return cvGrabFrame(cap.get()) != 0;
 }
 
 bool VideoCapture::retrieve(Mat& image, int channel)
 {
-	IplImage* _img = cvRetrieveFrame(cap, channel);
+	IplImage* _img = cvRetrieveFrame(cap.get(), channel);
 	if (!_img)
 	{
 		image.release();
@@ -90,12 +92,12 @@ VideoCapture& VideoCapture::operator >>(Mat& image)
 bool VideoCapture::set(int propId, double value)
 {
 //	return cvSetCaptureProperty(cap, propId, value) != 0;
-	return false;
+	throw runtime_error("not implemented");
 }
 
 double VideoCapture::get(int propId)
 {
 //	return cvGetCaptureProperty(cap, propId);
-	return false;
+	throw runtime_error("not implemented");
 }
 
