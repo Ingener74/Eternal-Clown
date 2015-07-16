@@ -1,9 +1,10 @@
+#include "VideoTexture.h"
+
 #include <chrono>
 
 #include <GL/glew.h>
 
 #include "FFmpegVideoSource.h"
-#include "VideoSprite.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -19,7 +20,7 @@ uint32_t upperPowerOfTwo(uint32_t v) {
     return v;
 }
 
-VideoSprite::VideoSprite(const std::string& fileName) {
+VideoTexture::VideoTexture(const std::string& fileName) {
     // Открываем видео
     m_videoSource.reset(new FFmpegVideoSource(fileName));
 
@@ -43,12 +44,12 @@ VideoSprite::VideoSprite(const std::string& fileName) {
             frame.m_buffer.data());
 }
 
-VideoSprite::~VideoSprite() {
+VideoTexture::~VideoTexture() {
     stop();
     glDeleteTextures(1, &textureID);
 }
 
-void VideoSprite::start(function<void()> onEnd) {
+void VideoTexture::start(function<void()> onEnd) {
     if (m_videoSource) {
         // Перематываем в начало
         m_videoSource->seek(0);
@@ -65,11 +66,11 @@ void VideoSprite::start(function<void()> onEnd) {
     }
 }
 
-void VideoSprite::stop() {
+void VideoTexture::stop() {
     m_videoSource->stop();
 }
 
-void VideoSprite::draw() {
+void VideoTexture::draw() {
     // Если настало время показывать кадр ...
     if (m_videoSource->isPresentationTimeStampPassed()) {
         // ... тогда лочим его(кадр) и текстуру ...
@@ -84,12 +85,12 @@ void VideoSprite::draw() {
     glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
-void VideoSprite::updateTexture(const RGBFrame& frame) {
+void VideoTexture::updateTexture(const RGBFrame& frame) {
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame.m_width, frame.m_height, GL_RGB, GL_UNSIGNED_BYTE,
             frame.m_buffer.data());
 }
 
-bool VideoSprite::isPlay() const {
+bool VideoTexture::isPlay() const {
     return m_videoSource->isPlay();
 }

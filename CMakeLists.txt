@@ -39,7 +39,7 @@ add_definitions(-std=c++11)
 add_executable(ffmpeg_opengl 
     ffmpeg_opengl/main.cpp 
     ffmpeg_opengl/FFmpegVideoSource.cpp 
-    ffmpeg_opengl/VideoSprite.cpp
+    ffmpeg_opengl/VideoTexture.cpp
 )
 
 target_link_libraries(ffmpeg_opengl ${GL_LIBRARIES} pthread lzma bz2 swresample)

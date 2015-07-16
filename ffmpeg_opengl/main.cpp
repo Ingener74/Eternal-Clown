@@ -24,7 +24,7 @@ extern "C"
 	#include <libavformat/avformat.h>
 }
 
-#include "VideoSprite.h"
+#include "VideoTexture.h"
 
 using namespace std;
 using namespace glm;
@@ -130,20 +130,12 @@ GLuint createProgram(const string& vertexShaderSource, const string& fragmentSha
     return program;
 }
 
-float w = 1280.f, h = 536.f, m = .3f;
+float w = 640, h = 480, m = 1.f;
 float width = w * m, height = h * m;
 
 GLfloat
-//bw       = 136.f,
-//bh       = 40.f,
-bw       = width,
-bh       = height,
-
-b0_off   = 0.f,
-b1_off   = 41.f,
-b2_off   = 82.f,
-
-ts       = 256.f;
+bw       = w, // width,
+bh       = h; // height;
 
 vector<GLfloat> pos012 = {
     -bw/2,  bh/2, 0.f,
@@ -153,16 +145,10 @@ vector<GLfloat> pos012 = {
 };
 
 vector<GLfloat> texcoord0 = {
-//    0.f, b0_off/ts,           bw/ts, b0_off/ts,
-//    0.f, b0_off/ts + bh/ts,   bw/ts, b0_off/ts + bh/ts,
-    0.f, 0.f,                  w / 2048.f, 0.f,
-    0.f, h / 2048.f,           w / 2048.f, h / 2048.f,
-}, texcoord1 = {
-    0.f, b1_off/ts,           bw/ts, b1_off/ts,
-    0.f, b1_off/ts + bh/ts,   bw/ts, b1_off/ts + bh/ts,
-}, texcoord2 = {
-    0.f, b2_off/ts,           bw/ts, b2_off/ts,
-    0.f, b2_off/ts + bh/ts,   bw/ts, b2_off/ts + bh/ts,
+//    0.f, 0.f,                  w / 2048.f, 0.f,
+//    0.f, h / 2048.f,           w / 2048.f, h / 2048.f,
+    0.f, 0.f,                  1.f, 0.f,
+    0.f, 1.f,                  1.f, 1.f,
 };
 
 vector<uint16_t> indeces = {
@@ -174,16 +160,16 @@ GLint uProj, uView, uModel, uTexture;
 GLint aTexCoord;
 GLint aPosition;
 
-GLuint vaos[3];
+GLuint vaos;
 GLuint pos;
-GLuint texcoords[3];
+GLuint texcoords;
 GLuint indeces_;
 GLuint indecesCount[] = {4, 4, 4};
 GLenum drawModes[] = {GL_TRIANGLE_STRIP, GL_TRIANGLE_STRIP, GL_TRIANGLE_STRIP};
 
 mat4 proj, view, model;
 
-VideoSprite* videoSprite = nullptr;
+VideoTexture* videoSprite = nullptr;
 
 void init();
 void display(void);
@@ -192,14 +178,16 @@ void deinit() {}
 void reshape(int w, int h);
 void timer(int time);
 
+string fileName;
+
 int main(int argc, char **argv) {
     try {
-//        if(argc < 2)
-//            throw invalid_argument("usage: ./Test <path-to-resource>");
+        if(argc < 2)
+            throw invalid_argument("usage: ./ffmpeg_opengl <path-to-video-file>");
+
+    	fileName = argv[1];
 
         av_register_all();
-
-//        base = argv[1];
 
         glutInit(&argc, argv);
         glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
@@ -266,71 +254,34 @@ void init() {
     uModel    = glGetUniformLocation(shader, "model");
     uTexture  = glGetUniformLocation(shader, "texture");
 
-    cout << "aPosition " << aPosition << ", aTexCoord " << aTexCoord << ", " << endl <<
-        "uProj " << uProj << ", uView " << uView << ", uModel " << uModel << ", uTexture " << uTexture << endl;
-
-    videoSprite = new VideoSprite("/home/pavel/trailer.h.mp4");
+    videoSprite = new VideoTexture(fileName);
 
     glGenBuffers(1, &pos);
     glBindBuffer(GL_ARRAY_BUFFER, pos);
     glBufferData(GL_ARRAY_BUFFER, pos012.size() * sizeof(float), pos012.data(), GL_STATIC_DRAW);
 
-    glGenBuffers(3, texcoords);
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, texcoords[0]);
-        glBufferData(GL_ARRAY_BUFFER, texcoord0.size() * sizeof(float), texcoord0.data(), GL_STATIC_DRAW);
-
-//        glBindBuffer(GL_ARRAY_BUFFER, texcoords[1]);
-//        glBufferData(GL_ARRAY_BUFFER, texcoord1.size() * sizeof(float), texcoord1.data(), GL_STATIC_DRAW);
-//
-//        glBindBuffer(GL_ARRAY_BUFFER, texcoords[2]);
-//        glBufferData(GL_ARRAY_BUFFER, texcoord2.size() * sizeof(float), texcoord2.data(), GL_STATIC_DRAW);
-    }
+    glGenBuffers(1, &texcoords);
+	glBindBuffer(GL_ARRAY_BUFFER, texcoords);
+	glBufferData(GL_ARRAY_BUFFER, texcoord0.size() * sizeof(float), texcoord0.data(), GL_STATIC_DRAW);
 
     glGenBuffers(1, &indeces_);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indeces.size() * sizeof(uint16_t), indeces.data(), GL_STATIC_DRAW);
 
-    glGenVertexArrays(3, vaos);
+    glGenVertexArrays(1, &vaos);
     {
-        glBindVertexArray(vaos[0]);
+        glBindVertexArray(vaos);
 
         glBindBuffer(GL_ARRAY_BUFFER, pos);
         glEnableVertexAttribArray(aPosition);
         glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-        glBindBuffer(GL_ARRAY_BUFFER, texcoords[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, texcoords);
         glEnableVertexAttribArray(aTexCoord);
         glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
     }
-//    {
-//        glBindVertexArray(vaos[1]);
-//
-//        glBindBuffer(GL_ARRAY_BUFFER, pos);
-//        glEnableVertexAttribArray(aPosition);
-//        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-//
-//        glBindBuffer(GL_ARRAY_BUFFER, texcoords[1]);
-//        glEnableVertexAttribArray(aTexCoord);
-//        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-//
-//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
-//    }
-//    {
-//        glBindVertexArray(vaos[2]);
-//
-//        glBindBuffer(GL_ARRAY_BUFFER, pos);
-//        glEnableVertexAttribArray(aPosition);
-//        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-//
-//        glBindBuffer(GL_ARRAY_BUFFER, texcoords[2]);
-//        glEnableVertexAttribArray(aTexCoord);
-//        glVertexAttribPointer(aTexCoord, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-//
-//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indeces_);
-//    }
 }
 
 void display(void) {
@@ -348,11 +299,10 @@ void display(void) {
     glUniformMatrix4fv(uModel, 1, GL_FALSE, &model[0][0]);
 
     glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, tex.textureId);
-    videoSprite->draw();
+    videoSprite->draw();           //< внутри glBindTexture(GL_TEXTURE_2D, textureId);
     glUniform1i(uTexture, 0);
 
-    glBindVertexArray(vaos[0]);
+    glBindVertexArray(vaos);
     glDrawElements(drawModes[0], indecesCount[0], GL_UNSIGNED_SHORT, 0);
 
     glBindVertexArray(0);
@@ -364,9 +314,9 @@ void display(void) {
 void reshape(int w, int h) {
     glViewport(0, 0, w, h);
 
-//	proj = glm::perspective(45.f, w / float(h), 10.f, 10000.f);
-    proj = glm::ortho<float>(-width / 2, width / 2, -height / 2, height / 2, -height / 2, height / 2);
-//	view = glm::lookAt<float>(vec3(40.f, 40.f, 100.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
+	proj = glm::perspective(45.f, w / float(h), 10.f, 10000.f);
+//    proj = glm::ortho<float>(-width / 2, width / 2, -height / 2, height / 2, -height / 2, height / 2);
+	view = glm::lookAt<float>(vec3(80.f, 80.f, 600.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
 }
 
 void timer(int time) {

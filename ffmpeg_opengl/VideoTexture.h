@@ -6,10 +6,10 @@
 
 #include "IVideoSource.h"
 
-class VideoSprite {
+class VideoTexture {
 public:
-    VideoSprite(const std::string& fileName = { });
-    virtual ~VideoSprite();
+    VideoTexture(const std::string& fileName = { });
+    virtual ~VideoTexture();
 
     void start(std::function<void()> = { });
     void stop();
