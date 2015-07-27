@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.0)
 
 # include modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
@@ -36,10 +36,12 @@ set(GL_LIBRARIES
 
 add_definitions(-std=c++11)
 
-add_executable(ffmpeg_opengl 
-    ffmpeg_opengl/main.cpp 
-    ffmpeg_opengl/FFmpegVideoSource.cpp 
-    ffmpeg_opengl/VideoTexture.cpp
+set(PROJECT_NAME EternalClown)
+
+add_executable(${PROJECT_NAME}
+    EternalClown/main.cpp 
+    EternalClown/FFmpegVideoSource.cpp 
+    EternalClown/VideoTexture.cpp
 )
 
-target_link_libraries(ffmpeg_opengl ${GL_LIBRARIES} pthread lzma bz2 swresample)
+target_link_libraries(${PROJECT_NAME} ${GL_LIBRARIES} pthread lzma bz2 swresample)

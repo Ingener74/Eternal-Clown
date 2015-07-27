@@ -4,7 +4,7 @@
 #include <memory>
 #include <mutex>
 
-#include "IVideoSource.h"
+#include "../EternalClown/IVideoSource.h"
 
 class VideoTexture {
 public:

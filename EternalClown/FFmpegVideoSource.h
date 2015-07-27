@@ -8,7 +8,7 @@
 #include <chrono>
 #include <condition_variable>
 
-#include "IVideoSource.h"
+#include "../EternalClown/IVideoSource.h"
 
 #define ffassert(condition, message) \
             if(!(condition)) \

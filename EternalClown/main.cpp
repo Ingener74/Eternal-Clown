@@ -24,7 +24,7 @@ extern "C"
 	#include <libavformat/avformat.h>
 }
 
-#include "VideoTexture.h"
+#include "../EternalClown/VideoTexture.h"
 
 using namespace std;
 using namespace glm;
@@ -91,7 +91,7 @@ GLuint createShader(GLenum shaderType, const string& source) {
     static array<string, 2> shaderTypeString = { "GL_FRAGMENT_SHADER", "GL_VERTEX_SHADER" };
 
     throw runtime_error(""
-            "can't create shader " + shaderTypeString[shaderType - GL_FRAGMENT_SHADER] + "\n" + &buf.front());
+        "can't create shader " + shaderTypeString[shaderType - GL_FRAGMENT_SHADER] + "\n" + &buf.front());
 }
 
 GLuint createProgram(const string& vertexShaderSource, const string& fragmentShaderSource) {
@@ -183,7 +183,7 @@ string fileName;
 int main(int argc, char **argv) {
     try {
         if(argc < 2)
-            throw invalid_argument("usage: ./ffmpeg_opengl <path-to-video-file>");
+            throw invalid_argument("usage: ./EternalClown <path-to-video-file>");
 
     	fileName = argv[1];
 

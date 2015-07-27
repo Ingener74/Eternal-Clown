@@ -6,7 +6,7 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-#include "FFmpegVideoSource.h"
+#include "../EternalClown/FFmpegVideoSource.h"
 
 using namespace std;
 using namespace std::chrono;

@@ -1,10 +1,10 @@
-#include "VideoTexture.h"
+#include "../EternalClown/VideoTexture.h"
 
 #include <chrono>
 
 #include <GL/glew.h>
 
-#include "FFmpegVideoSource.h"
+#include "../EternalClown/FFmpegVideoSource.h"
 
 using namespace std;
 using namespace std::chrono;
