@@ -21,7 +21,7 @@ string error2string(int error) {
 }
 
 FFmpegVideoSource::FFmpegVideoSource(const std::string& fileName) :
-        m_work(false) {
+    m_work(false) {
 
     ffassert(!fileName.empty(), "пустое имя файла");
 
@@ -59,7 +59,7 @@ FFmpegVideoSource::FFmpegVideoSource(const std::string& fileName) :
     avpicture_fill((AVPicture*) (m_rgbFrame), m_rgbImage.m_buffer.data(), AV_PIX_FMT_RGB24, width, height);
 
     m_swsContext = sws_getContext(m_codecContext->width, m_codecContext->height, m_codecContext->pix_fmt,
-            m_codecContext->width, m_codecContext->height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+        m_codecContext->width, m_codecContext->height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
 }
 
 FFmpegVideoSource::~FFmpegVideoSource() {
@@ -70,66 +70,63 @@ FFmpegVideoSource::~FFmpegVideoSource() {
     av_frame_free(&m_rgbFrame);
 }
 
-RGBFrame FFmpegVideoSource::getFrame()
-{
-	AVPacket pkt;
+RGBFrame FFmpegVideoSource::getFrame() {
+    AVPacket pkt;
 
-	m_noFrames = true;
+    m_noFrames = true;
 
-	while (av_read_frame(m_formatContext, &pkt) >= 0)
-	{
-		if (pkt.stream_index == m_streamIndex)
-		{
-			while (pkt.size > 0)
-			{
-				if (decodeFrame(&pkt))
-				{
-					goto output;
-				}
-			}
-		}
-		av_packet_unref(&pkt);
-		av_free_packet(&pkt);
-	}
-output:
-	av_packet_unref(&pkt);
-	av_free_packet(&pkt);
+    while (av_read_frame(m_formatContext, &pkt) >= 0) {
+        if (pkt.stream_index == m_streamIndex) {
+            while (pkt.size > 0) {
+                if (decodeFrame(&pkt)) {
+                    goto output;
+                }
+            }
+        }
+        av_packet_unref(&pkt);
+        av_free_packet(&pkt);
+    }
+    output: av_packet_unref(&pkt);
+    av_free_packet(&pkt);
 
-	RGBFrame result = m_rgbImage;
+//    cout << "dts      " << m_yuvFrame->pkt_dts << endl;
+//    cout << "duration " << m_yuvFrame->pkt_duration << endl;
+//    cout << "pos      " << m_yuvFrame->pkt_pos << endl;
+//    cout << "pts      " << m_yuvFrame->pkt_pts << endl;
+//    cout << "size     " << m_yuvFrame->pkt_size << endl << endl;
 
-	return move(result);
+    RGBFrame result = m_rgbImage;
+
+    return move(result);
 }
 
-bool FFmpegVideoSource::decodeFrame(AVPacket* pkt)
-{
-	int size = 0, frameFinished;
-	size = avcodec_decode_video2(m_codecContext, m_yuvFrame, &frameFinished, pkt);
+bool FFmpegVideoSource::decodeFrame(AVPacket* pkt) {
+    int size = 0, frameFinished;
+    size = avcodec_decode_video2(m_codecContext, m_yuvFrame, &frameFinished, pkt);
 
-	if (size < 0)
-	{
-		throw runtime_error(string(__FILE__) + ": " + to_string(__LINE__) + ": " + string(__PRETTY_FUNCTION__) +
-			": ошибка во время декодирования кадра");
-	}
+    if (size < 0) {
+        throw runtime_error(
+            string(__FILE__) + ": " + to_string(__LINE__) + ": " + string(__PRETTY_FUNCTION__)
+                + ": ошибка во время декодирования кадра");
+    }
 
-	if (pkt->data)
-	{
-		pkt->data += size;
-		pkt->size -= size;
-	}
+    if (pkt->data) {
+        pkt->data += size;
+        pkt->size -= size;
+    }
 
-	if (frameFinished)
-	{
-		sws_scale(m_swsContext, (const uint8_t* const *) (m_yuvFrame->data), m_yuvFrame->linesize, 0, m_codecContext->height,
-			m_rgbFrame->data, m_rgbFrame->linesize);
-		m_noFrames = false;
-		return true;
-	}
+    if (frameFinished) {
+        sws_scale(m_swsContext, (const uint8_t* const *) (m_yuvFrame->data), m_yuvFrame->linesize, 0,
+            m_codecContext->height, m_rgbFrame->data, m_rgbFrame->linesize);
+        m_noFrames = false;
+        return true;
+    }
 
-	av_frame_unref(m_yuvFrame);
-	av_packet_unref(pkt);
-	av_free_packet(pkt);
+    av_frame_unref(m_yuvFrame);
+    av_packet_unref(pkt);
+    av_free_packet(pkt);
 
-	return false;
+    return false;
 }
 
 void FFmpegVideoSource::seek(int64_t timeStamp) {
@@ -160,6 +157,10 @@ void FFmpegVideoSource::start(function<void(RGBFrame)> onNewFrame, function<void
             std::unique_lock<mutex> decodeNewLock(m_decodeNewMutex);
             while (!m_frameDrawed)
             {
+                if(!m_work)
+                {
+                    break;
+                }
                 m_decodeNew.wait(decodeNewLock);
             }
 
@@ -170,6 +171,13 @@ void FFmpegVideoSource::start(function<void(RGBFrame)> onNewFrame, function<void
             if (m_noFrames)
             {
                 m_work = false;
+
+//                for(auto& i: m_rgbImage.m_buffer) {
+//                    i = 0;
+//                }
+//                RGBFrame black = m_rgbImage;
+//                onNewFrame(move(black));
+
                 if (onEnd)
                 {
                     onEnd();
@@ -180,8 +188,13 @@ void FFmpegVideoSource::start(function<void(RGBFrame)> onNewFrame, function<void
 }
 
 void FFmpegVideoSource::stop() {
-    m_work = false;
-    m_thread.join();
+    {
+        unique_lock<mutex> lock(m_decodeNewMutex);
+        m_work = false;
+        m_decodeNew.notify_all();
+    }
+    if (m_thread.joinable())
+        m_thread.join();
 }
 
 bool FFmpegVideoSource::isPresentationTimeStampPassed() {
@@ -191,7 +204,7 @@ bool FFmpegVideoSource::isPresentationTimeStampPassed() {
     auto timeBase = av_q2d(m_formatContext->streams[m_streamIndex]->time_base);
     auto timeCounter = duration_cast<milliseconds>(system_clock::now() - m_startTime).count();
 
-    if (timeCounter * timeBase >= m_yuvFrame->pkt_pts * timeBase) {
+    if (timeCounter /** timeBase*/>= m_yuvFrame->pkt_pts * timeBase) {
         // ... рисуем его и ...
         m_frameDrawed = true;
 

@@ -1,6 +1,7 @@
 #include "../EternalClown/VideoTexture.h"
 
 #include <chrono>
+#include <iostream>
 
 #include <GL/glew.h>
 
@@ -41,7 +42,7 @@ VideoTexture::VideoTexture(const std::string& fileName) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame.m_width, frame.m_height, GL_RGB, GL_UNSIGNED_BYTE,
-            frame.m_buffer.data());
+        frame.m_buffer.data());
 }
 
 VideoTexture::~VideoTexture() {
@@ -59,10 +60,10 @@ void VideoTexture::start(function<void()> onEnd) {
         m_videoSource->start([this](RGBFrame frame)
         {
             // Лочим и забираем изображение
-                lock_guard<mutex> lock(m_frameMutex);
+            lock_guard<mutex> lock(m_frameMutex);
 
-                m_frame = move(frame);
-            }, onEnd);
+            m_frame = move(frame);
+        }, onEnd);
     }
 }
 
@@ -88,7 +89,7 @@ void VideoTexture::draw() {
 void VideoTexture::updateTexture(const RGBFrame& frame) {
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame.m_width, frame.m_height, GL_RGB, GL_UNSIGNED_BYTE,
-            frame.m_buffer.data());
+        frame.m_buffer.data());
 }
 
 bool VideoTexture::isPlay() const {

@@ -147,8 +147,12 @@ vector<GLfloat> pos012 = {
 vector<GLfloat> texcoord0 = {
 //    0.f, 0.f,                  w / 2048.f, 0.f,
 //    0.f, h / 2048.f,           w / 2048.f, h / 2048.f,
+
     0.f, 0.f,                  1.f, 0.f,
     0.f, 1.f,                  1.f, 1.f,
+
+//    0.f, 0.f,                  .7f, 0.f,
+//    0.f, .4f,                  .7f, .4f,
 };
 
 vector<uint16_t> indeces = {
@@ -284,9 +288,25 @@ void init() {
     }
 }
 
+const float delayMax = 1000.f;
+float delay = delayMax;
+
 void display(void) {
+
+    static bool once = true;
     if (!videoSprite->isPlay()) {
-        videoSprite->start();
+        if (once) {
+            videoSprite->start();
+            once = false;
+        } else {
+            if (delay > 0.f) {
+                delay -= 1.f;
+            } else {
+                cout << "restart" << endl;
+                delay += delayMax;
+                once = true;
+            }
+        }
     }
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
